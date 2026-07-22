@@ -22,10 +22,10 @@ keywords:
   - rstudio
 preferred-citation:
   authors:
-  - given-names: Stenborg
-    family-names: Travis
-  - given-names: Samuel
-    family-names: Legge
+    - given-names: Stenborg
+      family-names: Travis
+    - given-names: Samuel
+      family-names: Legge
   doi: "10.63929/14432471.2025-234-19"
   end: 30 # Last page number.
   issn: "1443-2471"
