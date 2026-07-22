@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+title: "An R data parser for the gPhone gravity meter"
+message: "If you use this repository, please cite it using these metadata."
+type: software
+authors:
+  - given-names: Travis
+    family-names: Stenborg
+    orcid: "https://orcid.org/0000-0002-2693-9628"
+  - given-names: Samuel
+    family-names: Legge
+    orcid: "https://orcid.org/0000-0001-9466-4489"
+url: "https://github.com/tstenborg/gphone-r-parser"
+abstract: >-
+  "This repository holds digital assets associated with the article 'An R data \
+  parser for the gPhone gravity meter'. That article describes R Markdown \
+  designed to parse and import gPhone 74 gravity meter data into RStudio. \
+  Users may then inspect and analyse the data further using RStudio's Data \
+  Viewer or R scripting."
+keywords:
+  - gphone
+  - gravimetry
+  - rstudio
+preferred-citation:
+  authors:
+  - given-names: Stenborg
+    family-names: Travis
+  - given-names: Samuel
+    family-names: Legge
+  doi: "10.63929/14432471.2025-234-19"
+  end: 30 # Last page number.
+  issn: "1443-2471"
+  issue: 234
+  journal: Preview
+  month: 2
+  publisher:
+    name: "Australian Society of Exploration Geophysicists"
+  start: 30 # First page number.
+  title: "An R data parser for the gPhone gravity meter"
+  type: article
+  year: 2025

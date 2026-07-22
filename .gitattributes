@@ -1,0 +1,2 @@
+# .gitattributes file which identifies R properly:
+*.Rmd linguist-language=R
