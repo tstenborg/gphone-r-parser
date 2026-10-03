@@ -1,0 +1,166 @@
+```{r gphone_encode, echo=FALSE, include=FALSE}
+
+# Prepare time series data for import into a data frame.
+# It's assumed the data will be in ".tsf" format.
+
+library(dplyr)   # For manipulating tibbles.
+library(readr)   # For reading files and manipulating encodings.
+
+# Prompt the user to select a file to import.
+file_path <- rstudioapi::selectFile(caption = "Select gPhone (TSF) File",
+                                    filter = "TSF Files (*.tsf)",
+                                    existing = TRUE)
+
+# Estimate the most likely file encoding.
+str_encoding <- arrange(
+  guess_encoding(file_path, n_max = -1, threshold = 0.2),
+  desc(confidence)
+)$encoding[1]
+
+# Convert selected multibyte encodings to single byte encoding.
+bool_file_created <- FALSE
+if (str_encoding == "ISO-8859-1") {
+  file_path_new <- paste0(
+    substring(file_path,
+              first = 1,
+              last = nchar(file_path) - 4),
+    "_UTF-8.tsf"
+  )
+  file_handle <- file(file_path_new, encoding = "UTF-8")
+  writeLines(
+    iconv(readLines(file_path), from = str_encoding, to = "UTF-8"),
+    file_handle
+  )
+  close(file_handle)
+  file_path <- file_path_new   # Redirect file input to the new file.
+  bool_file_created <- TRUE
+
+  rm(file_path_new)
+  rm(str_encoding)
+}
+
+```
+
+```{r gphone_import, echo=FALSE, include=FALSE}
+
+# Import time series data into a data frame.
+
+# Miscellaneous initialisations.
+vec_channels <- c("Year", "Month", "Day", "Hour", "Minute", "Second")
+bool_read_channels <- FALSE
+bool_read_data <- FALSE
+bool_read_units <- FALSE
+num_lines_data <- 0
+num_lines_total <- 0
+unit_counter <- 0
+
+
+# Initial pass through data.
+file_handle <- file(file_path, "r")   # Open file.
+while (TRUE) {
+
+  line <- readLines(file_handle, n = 1)
+
+  # Exit if end of file reached.
+  if (length(line) == 0) {
+    break
+  }
+
+  num_lines_total <- num_lines_total + 1
+
+  # Assumes "[CHANNELS]" appears before "[UNITS]".
+  # Assumes "[UNITS]" appears before "[DATA]".
+
+  if (bool_read_data) {
+    # Count data entries.
+    num_lines_data <- num_lines_data + 1
+
+  } else if (bool_read_channels) {
+    if (line == "[UNITS]") {
+      # Read channel info until hitting the "[UNITS]" line.
+      vec_units <- rep(NA, length(vec_channels) - 6)
+      bool_read_channels <- FALSE
+      bool_read_units <- TRUE
+
+    } else {
+      # Build the list of channel (variable) names.
+      vec_channels <- append(
+        vec_channels,
+        tail(strsplit(line, ":", fixed = TRUE)[[1]], n = 1)
+      )
+    }
+
+  } else if (bool_read_units) {
+    if (substr(line, 1, 10) == "[UNDETVAL]") {
+      # Read units info until hitting the "[UNDETVAL]" line.
+      bool_read_units <- FALSE
+
+    } else {
+      # Build the list of units.
+      unit_counter <- unit_counter + 1
+      vec_units[unit_counter] <- trimws(line)
+    }
+
+  } else if (line == "[CHANNELS]") {
+    # Assume variable names begin after the "[CHANNELS]" line.
+    bool_read_channels <- TRUE
+
+  } else if (line == "[DATA]") {
+    # Assume data begins after the "[DATA]" line.
+    bool_read_data <- TRUE
+  }
+}
+close(file_handle)   # Close file.
+rm(bool_read_channels)
+rm(bool_read_data)
+rm(bool_read_units)
+rm(file_handle)
+rm(line)
+
+
+cat("\n\nData points detected: ", num_lines_data,
+    ".\nTotal lines read: ", num_lines_total, ".\n", sep = "")
+
+
+# Data navigation variables.
+num_lines_metadata <- num_lines_total - num_lines_data
+rm(num_lines_data)
+rm(num_lines_total)
+
+
+# Second pass through data.
+#
+# Assume the first six columns are date-time data.
+# N.B. This will apply a default UTC time zone, likely inconsistent with the
+#      source data. The source data doesn't supply an alternative.
+gphone_data <- mutate(
+  .data = read_table(file_path, col_names = FALSE, skip = num_lines_metadata),
+  "Date-Time" = lubridate::ymd_hms(
+    paste0(X1, "-", X2, "-", X3, " ", X4, ":", X5, ":", X6)
+  ),
+  .keep = "unused",
+  .before = "X7"
+)
+
+# Give meaningful names to the columns from seven onwards.
+colnames(gphone_data)[2:(length(vec_channels) - 5)] <- paste(
+  vec_channels[7:length(vec_channels)], paste0("(", vec_units, ")")
+)
+
+
+# Delete any file copies made for encoding conversion purposes.
+if (bool_file_created == TRUE) {
+  file.remove(file_path)
+}
+
+# Release unneeded memory.
+rm(bool_file_created)
+rm(file_path)
+rm(num_lines_metadata)
+rm(unit_counter)
+rm(vec_channels)
+rm(vec_units)
+gc()
+
+cat("\nImport complete.\n", sep = "")
+```
